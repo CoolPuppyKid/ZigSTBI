@@ -5,6 +5,10 @@ const c = @cImport({
     @cInclude("../include/stb_image.h");
 });
 
+pub fn set_flip_vertically_on_load(should_flip: bool) void {
+    c.stbi_set_flip_vertically_on_load(if (should_flip) 1 else 0);
+}
+
 pub fn load_file(path: []const u8, num_components: u32) !Image {
     var w: c_int = 0;
     var h: c_int = 0;
@@ -45,9 +49,3 @@ pub const Image = struct {
         c.stbi_image_free(@ptrCast(self.bytes.ptr));
     }
 };
-
-test "Load Image" {
-    var img = try load_file("C:\\Users\\theja\\Code\\ZigSTBI\\Will-it-hurt.png", 0);
-    defer img.deinit();
-    try testing.expect(img.bytes.len > 0);
-}
