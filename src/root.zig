@@ -41,7 +41,7 @@ pub const Image = struct {
     height: u32,
     channel_number: u32,
 
-    fn deinit(self: *Image) void {
+    pub fn deinit(self: *Image) void {
         c.stbi_image_free(@ptrCast(self.bytes.ptr));
     }
 };
