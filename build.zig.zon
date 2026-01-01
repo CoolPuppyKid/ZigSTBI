@@ -2,6 +2,6 @@
     .name = .ZigSTBI,
     .version = "0.0.1",
     .minimum_zig_version = "0.15.1",
-    .paths = .{ "build.zig", "build.zig.zon", "src" },
+    .paths = .{ "build.zig", "build.zig.zon", "src", "include" },
     .fingerprint = 0x61626edb2124b95e,
 }
