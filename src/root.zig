@@ -10,8 +10,8 @@ pub fn set_flip_vertically_on_load(should_flip: bool) void {
 }
 
 pub fn load_file(path: []const u8, num_components: u32) !Image {
-    var w: c_int = 0;
-    var h: c_int = 0;
+    var w: u32 = 0;
+    var h: u32 = 0;
     var ch: c_int = 0;
     var bytes_per_component: u32 = 0;
     var bytes_per_row: u32 = 0;
@@ -28,12 +28,18 @@ pub fn load_file(path: []const u8, num_components: u32) !Image {
     defer allocator.free(c_path);
 
     var data: []u8 = undefined; //c.stbi_load(c_path.ptr, &w, &h, &ch, @intCast(num_components));
-    if (isHdr(c_path.ptr)) {
+    if (isHdr(c_path)) {
         var x: c_int = undefined;
         var y: c_int = undefined;
-        const img = c.stbi_loadf(path, &x, &y, &ch, @intCast(num_components));
-        if (img == null) return error.ImageFailedToLoad;
-        const components = if (num_components == 0) ch else @as(c_int, @intCast(num_components));
+        const img = c.stbi_loadf(c_path.ptr, &x, &y, &ch, @intCast(num_components));
+        if (img == null) {
+            if (c.stbi_failure_reason()) |err| {
+                std.debug.print("{s}\n", .{err});
+                return error.StbiError;
+            }
+            return error.ImageFailedToLoad;
+        }
+        const components: u32 = @intCast(if (num_components == 0) ch else @as(c_int, @intCast(num_components)));
         w = @as(u32, @intCast(x));
         h = @as(u32, @intCast(y));
         bytes_per_component = 2;
@@ -52,34 +58,33 @@ pub fn load_file(path: []const u8, num_components: u32) !Image {
         var y: c_int = undefined;
         const img16bit = is16bit(c_path);
         const img = if (img16bit) @as(?[*]u8, @ptrCast(c.stbi_load_16(
-            c_path,
+            c_path.ptr,
             &x,
             &y,
             &ch,
             @intCast(num_components),
         ))) else c.stbi_load(
-            c_path,
+            c_path.ptr,
             &x,
             &y,
             &ch,
             @intCast(num_components),
         );
-        if (img == null) return error.ImageFailedToLoad;
+        if (img == null) {
+            if (c.stbi_failure_reason()) |err| {
+                std.debug.print("{s}\n", .{err});
+                return error.StbiError;
+            }
+            return error.ImageFailedToLoad;
+        }
 
-        const components = if (num_components == 0) ch else @as(c_int, @intCast(num_components));
+        const components: u32 = @intCast(if (num_components == 0) ch else @as(c_int, @intCast(num_components)));
         w = @as(u32, @intCast(x));
         h = @as(u32, @intCast(y));
         bytes_per_component = if (img16bit) 2 else 1;
         bytes_per_row = w * components * bytes_per_component;
         is_hdr = false;
         data = @as([*]u8, @ptrCast(img))[0 .. h * bytes_per_row];
-    }
-
-    const stbiError = c.stbi_failure_reason();
-
-    if (stbiError) |err| {
-        std.debug.print("{s}\n", .{err});
-        return error.StbiError;
     }
 
     return Image{ .bytes = data, .width = @intCast(w), .height = @intCast(h), .channel_number = @intCast(ch) };
@@ -103,3 +108,22 @@ pub const Image = struct {
         c.stbi_image_free(@ptrCast(self.bytes.ptr));
     }
 };
+
+test "Image load" {
+    const allocator = testing.allocator;
+
+    const cwd = try std.process.getCwdAlloc(allocator);
+    defer allocator.free(cwd);
+
+    const imgPath = try std.fs.path.join(allocator, &[_][]const u8{ cwd, "rock.jpg" });
+    defer allocator.free(imgPath);
+
+    std.debug.print("Cwd: {s}, ImgPath: {s}\n", .{ cwd, imgPath });
+
+    var img = try load_file(imgPath, 0);
+    defer img.deinit();
+
+    try testing.expect(img.bytes.len > 0);
+    try testing.expect(img.width > 0);
+    try testing.expect(img.height > 0);
+}
