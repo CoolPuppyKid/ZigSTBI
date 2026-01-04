@@ -27,7 +27,7 @@ pub fn load_file(path: []const u8, num_components: u32) !Image {
     const c_path = try allocator.dupeZ(u8, path);
     defer allocator.free(c_path);
 
-    var data = undefined; //c.stbi_load(c_path.ptr, &w, &h, &ch, @intCast(num_components));
+    var data: []u8 = undefined; //c.stbi_load(c_path.ptr, &w, &h, &ch, @intCast(num_components));
     if (isHdr(c_path.ptr)) {
         var x: c_int = undefined;
         var y: c_int = undefined;
