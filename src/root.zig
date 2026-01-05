@@ -42,17 +42,11 @@ pub fn load_file(path: []const u8, num_components: u32) !Image {
         const components: u32 = @intCast(if (num_components == 0) ch else @as(c_int, @intCast(num_components)));
         w = @as(u32, @intCast(x));
         h = @as(u32, @intCast(y));
-        bytes_per_component = 2;
+        bytes_per_component = 4;
         bytes_per_row = w * components * bytes_per_component;
         is_hdr = true;
 
-        var comp_f16 = @as([*]f16, @ptrCast(img.?));
-        const num = w * h * components;
-        var i: u32 = 0;
-        while (i < num) : (i += 1) {
-            comp_f16[i] = @as(f16, @floatCast(img.?[i]));
-        }
-        data = @as([*]u8, @ptrCast(comp_f16))[0 .. h * bytes_per_row];
+        data = @as([*]u8, @ptrCast(img))[0 .. h * bytes_per_row];
     } else {
         var x: c_int = undefined;
         var y: c_int = undefined;
@@ -126,4 +120,5 @@ test "Image load" {
     try testing.expect(img.bytes.len > 0);
     try testing.expect(img.width > 0);
     try testing.expect(img.height > 0);
+    try testing.expect(img.bytes[0] == 110);
 }
